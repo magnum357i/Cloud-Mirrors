@@ -97,7 +97,7 @@ class Request {
 		if ( $this->accessMethod == 'login' ) {
 
 			$options[ CURLOPT_HTTPAUTH ] = CURLAUTH_ANY;
-			$options[ CURLOPT_USERPWD ]  = implode( ':', static::$auth );
+			$options[ CURLOPT_USERPWD ]  = implode( ':', static::$login );
 		}
 
 		$options[ CURLOPT_URL ]            = $this->createUrl( $url );
@@ -127,8 +127,6 @@ class Request {
 
         $this->response[ 'content' ] = curl_exec( $cSession );
         $this->response[ 'info' ]    = curl_getinfo( $cSession );
-
-        var_dump( $this->response[ 'content' ] ); die;
 
 		curl_close( $cSession );
 	}

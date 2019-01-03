@@ -11,38 +11,12 @@
 
 namespace cloudmirrors\Services;
 
-class Yandex {
+class Yandex extends \cloudmirrors\Helper\Builder {
 
 	/**
 	 * API URL
 	 */
-	const serviceLink = 'https://cloud-api.yandex.net/v1/disk/';
-
-	/**
-	 *
-	 * @param 		$n 			Your Yandex Username
-	 * @param 		$p 			Your Yandex Pasword
-	 * @return 		void
-	 */
-	public function setLogin( $n, $p ) {
-
-		$this->request()->setUser( $n, $p );
-	}
-
-	/**
-	 * Request Class
-	 */
-	protected $request = NULL;
-
-	public function request() {
-
-		if ( $this->request == NULL ) {
-
-			$this->request = new \cloudmirrors\Helper\Request( static::serviceLink );
-		}
-
-		return $this->request;
-	}
+	public $serviceLink = 'https://webdav.yandex.com.tr/';
 
 	/**
 	 *
@@ -60,8 +34,6 @@ class Yandex {
 			'GET',
 			$remoteFile
 		);
-
-		var_dump( $this->request()->getContent() ); die;
 
 		if ( $this->request()->getStatus() != 200 ) throw new \Exception( "[Cloudmirrors Yandex Error] File not download" );
 
@@ -322,8 +294,6 @@ class Yandex {
 	 */
 	public function getDiskInfo() {
 
-		$this->request()->setHeader( 'Depth', '0' );
-
 		$xml  = '';
 		$xml .= '<D:propfind xmlns:D="DAV:">';
 		$xml .= '<D:prop>';
@@ -336,6 +306,7 @@ class Yandex {
 			'PROPFIND',
 			'',
 			[
+				[ 'Depth',          '0' ],
 				[ 'Content-Type',   'application/xml; charset="utf-8"' ],
 				[ 'Content-Length', strlen( $xml ) ]
 			],
@@ -344,15 +315,14 @@ class Yandex {
 			]
 		);
 
-		$return = [ 'used' => 0, 'available' => 0 ];
+		$return = [];
 
-		preg_match( '@<d:quota-used-bytes>(.*?)</d:quota-used-bytes>@si', $this->request()->getContent(), $out );
+		preg_match( '@<d:quota-used-bytes>(.*?)</d:quota-used-bytes>@si',           $this->request()->getContent(), $used );
+		preg_match( '@<d:quota-available-bytes>(.*?)</d:quota-available-bytes>@si', $this->request()->getContent(), $available );
 
-		if ( isset( $out[ 1 ] ) ) $return[ 'used' ] = $this->formatSize( $out[ 1 ] );
-
-		preg_match( '@<d:quota-available-bytes>(.*?)</d:quota-available-bytes>@si', $this->request()->getContent(), $out );
-
-		if ( isset( $out[ 1 ] ) ) $return[ 'available' ] = $this->formatSize( $out[ 1 ] );
+		$return[ 'used' ]      = $this->formatSize( $used[ 1 ] );
+		$return[ 'available' ] = $this->formatSize( $available[ 1 ] );
+		$return[ 'total' ]     = $this->formatSize( $used[ 1 ] + $available[ 1 ] );
 
 		return $return;
 	}
@@ -499,17 +469,5 @@ class Yandex {
 		}
 
 		return $return;
-	}
-
-	/**
-	 *
-	 * @param 		$bytes 			Bytes
-	 * @return 		int
-	 */
-	protected function formatSize( $bytes ) {
-
-		$size = sprintf( "%.0f", $bytes / pow( 1024, floor( ( strlen( $bytes ) - 1 ) / 3 ) ) );
-
-		return $size;
 	}
 }
